@@ -92,7 +92,6 @@ public sealed class Program
             try
             {
                 CopyInputFileToOutputFileWithOneActivity(fullPathName, activityIndex);
-                break;
             }
             catch (Exception ex)
             {
@@ -123,7 +122,6 @@ public sealed class Program
         var writerSettings = new XmlWriterSettings { Indent = true };
         using var xmlWriter = XmlWriter.Create(outputFilePathName, writerSettings);
 
-        var writeEnabled = true;
         var activityElementsCount = 0;
         var inActivitiesElement = false;
         for (; ; )
@@ -142,7 +140,7 @@ public sealed class Program
 
                     if ((activityElementsCount - 1) != activityIndex)
                     {
-                        writeEnabled = false;
+                        xmlReader.Skip();
                         continue;
                     }
                 }
@@ -152,16 +150,9 @@ public sealed class Program
             {
                 if (xmlReader.Name == "Activities")
                     inActivitiesElement = false;
-
-                if (xmlReader.Name == "Activity" && inActivitiesElement)
-                {
-                    writeEnabled = true;
-                    continue;
-                }
             }
 
-            if (writeEnabled)
-                writeNode(xmlReader, xmlWriter);
+            writeNode(xmlReader, xmlWriter);
         }
 
         xmlWriter.Flush();
@@ -175,41 +166,68 @@ public sealed class Program
             {
                 case XmlNodeType.None:
                     break;
+
                 case XmlNodeType.Element:
-                    writer.WriteStartElement(reader.Name);
+                    writer.WriteStartElement(reader.Prefix, reader.LocalName, reader.NamespaceURI);
+                    writer.WriteAttributes(reader, defattr: true);
+                    if (reader.IsEmptyElement)
+                    {
+                        writer.WriteEndElement();
+                    }
                     break;
-                case XmlNodeType.Attribute:
-                    break;
+
                 case XmlNodeType.Text:
+                    writer.WriteString(reader.Value);
                     break;
+
                 case XmlNodeType.CDATA:
+                    writer.WriteCData(reader.Value);
                     break;
+
                 case XmlNodeType.EntityReference:
+                    writer.WriteEntityRef(reader.Name);
                     break;
+
                 case XmlNodeType.Entity:
                     break;
+
                 case XmlNodeType.ProcessingInstruction:
+                    writer.WriteProcessingInstruction(reader.Name, reader.Value);
                     break;
+
                 case XmlNodeType.Comment:
+                    writer.WriteComment(reader.Value);
                     break;
+
                 case XmlNodeType.Document:
                     break;
+
                 case XmlNodeType.DocumentType:
+                    writer.WriteDocType(reader.Name, reader.GetAttribute("PUBLIC"), reader.GetAttribute("SYSTEM"), reader.Value);
                     break;
+
                 case XmlNodeType.DocumentFragment:
                     break;
+
                 case XmlNodeType.Notation:
                     break;
+
                 case XmlNodeType.Whitespace:
                     break;
+
                 case XmlNodeType.SignificantWhitespace:
+                    writer.WriteWhitespace(reader.Value);
                     break;
+
                 case XmlNodeType.EndElement:
-                    writer.WriteEndElement();
+                    writer.WriteFullEndElement();
                     break;
+
                 case XmlNodeType.EndEntity:
                     break;
+
                 case XmlNodeType.XmlDeclaration:
+                    writer.WriteProcessingInstruction(reader.Name, reader.Value);
                     break;
             }
         }
