@@ -2,6 +2,7 @@
 using System;
 using System.IO;
 using System.Xml;
+using System.Text;
 
 namespace SplitTcxFile;
 
@@ -12,7 +13,7 @@ public sealed class Program
         /* Get the full pathname of the file to process, and check it exists. */
         var folder = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
 
-        var path = $"failed{Path.DirectorySeparatorChar}Road 150221-160130.tcx";
+        var path = $"failed{Path.DirectorySeparatorChar}Road 180416-180926.tcx";
 
         var fullPathName = Path.Combine(folder, path);
 
@@ -119,7 +120,12 @@ public sealed class Program
         /* Copy all nodes to the output file except for Activity elements that aren't referenced by activityIndex. */
         using var xmlReader = XmlReader.Create(inputFilePathName);
 
-        var writerSettings = new XmlWriterSettings { Indent = true };
+        var writerSettings = new XmlWriterSettings
+        {
+            Indent = true,
+            Encoding = new UTF8Encoding(false),     // omit BOM
+            NewLineChars = "\n"                     // UNIX (LF)
+        };
         using var xmlWriter = XmlWriter.Create(outputFilePathName, writerSettings);
 
         var activityElementsCount = 0;
